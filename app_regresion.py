@@ -4,65 +4,45 @@ import streamlit as st
 from joblib import load
 from pathlib import Path
 
+from formulario import observacion
+
 # Cargar el modelo de regresión (pipeline completo: transformaciones + modelo)
 regressor = load(Path(__file__).parent / "modelos" / "regresor_ingreso.joblib")
 
-# Opciones de los campos categóricos (valores = los mismos con los que se entrenó)
-SEXO = [("Hombre", "1"), ("Mujer", "2")]
-PARENTESCO = ["Jefe", "Conyuge", "Hijo", "Otro_familiar"]
-NIVEL_EDUC = [
-    ("Sin nivel", "1"), ("Inicial", "2"), ("Primaria incompleta", "3"), ("Primaria completa", "4"),
-    ("Secundaria incompleta", "5"), ("Secundaria completa", "6"),
-    ("Sup. no univ. incompleta", "7"), ("Sup. no univ. completa", "8"),
-    ("Sup. univ. incompleta", "9"), ("Sup. univ. completa", "10"),
-    ("Maestria/Doctorado", "11"), ("Basica especial", "12"),
-]
-LENGUA = ["Castellano", "Quechua", "Aimara", "Otra_nativa", "Extranjera_otra"]
-DOMINIO = [
-    ("Costa Norte", "1"), ("Costa Centro", "2"), ("Costa Sur", "3"), ("Sierra Norte", "4"),
-    ("Sierra Centro", "5"), ("Sierra Sur", "6"), ("Selva", "7"), ("Lima Metropolitana", "8"),
-]
-AREA = [("Urbano", "1"), ("Rural", "0")]
-CAMPO = ["Sin_carrera", "Educacion", "Ciencias", "Admin_Contab_Derecho", "Computacion_Informatica",
-         "Ingenieria_Tecnicas", "Agropecuaria", "Salud", "Artes_Otras"]
+st.markdown(
+    "<h2 style='text-align:center;'>Modelo de Regresión: Ingreso Anual</h2>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='text-align:center; color:#888;'>Predicción del ingreso anual del "
+    "trabajo principal (ENAHO 2023, Módulo 05).</p>",
+    unsafe_allow_html=True,
+)
 
-# App
-st.title("Modelo de Regresión: Ingreso Anual")
-st.markdown("##### Predicción del ingreso anual del trabajo principal (ENAHO 2023, Módulo 05).")
+# Formulario centrado + botón
+_, mid, _ = st.columns([1, 5, 1])
+with mid:
+    obs, pulsado = observacion()
 
-st.sidebar.header("Campos a Evaluar")
-
-edad = st.sidebar.number_input("**Edad (14 a 98)**", min_value=14, max_value=98, value=30)
-sexo = st.sidebar.selectbox("**Sexo**", [o[0] for o in SEXO])
-parentesco = st.sidebar.selectbox("**Parentesco**", PARENTESCO)
-nivel = st.sidebar.selectbox("**Nivel educativo**", [o[0] for o in NIVEL_EDUC])
-lengua = st.sidebar.selectbox("**Lengua materna**", LENGUA)
-dominio = st.sidebar.selectbox("**Dominio geográfico**", [o[0] for o in DOMINIO])
-area = st.sidebar.selectbox("**Área**", [o[0] for o in AREA])
-campo = st.sidebar.selectbox("**Campo de estudio**", CAMPO)
-
-if st.sidebar.button("Predecir"):
-    obs = pd.DataFrame([{
-        "edad": int(edad),
-        "sexo": dict(SEXO)[sexo],
-        "parentesco": parentesco,
-        "nivel_educ": dict(NIVEL_EDUC)[nivel],
-        "lengua_materna": lengua,
-        "dominio": dict(DOMINIO)[dominio],
-        "area": dict(AREA)[area],
-        "campo_estudio": campo,
-    }])
-
-    st.write("**Datos de entrada:**")
-    st.write(obs)
-
+if pulsado:
     # El pipeline contiene todas las transformaciones: solo hay que predecir
     pred_log = regressor.predict(obs)
-    pred_anual = np.expm1(pred_log)
+    pred_anual = np.expm1(pred_log)[0]
 
-    st.markdown(f'<p style="font-size: 40px; color: green;">El ingreso anual estimado será: S/ {pred_anual[0]:,.2f}</p>',
-                unsafe_allow_html=True)
-    st.caption("Ingreso neto anual del trabajo principal (ENAHO i524a1).")
-
-if st.sidebar.button("Resetear"):
-    st.rerun()
+    _, res, _ = st.columns([1, 5, 1])
+    with res:
+        with st.container(border=True):
+            st.markdown("**Resultado de la predicción**")
+            st.markdown(
+                f"<div style='text-align:center; font-size:38px; font-weight:700; "
+                f"color:#1fa352;'>S/ {pred_anual:,.2f}</div>",
+                unsafe_allow_html=True,
+            )
+            st.caption("Ingreso neto anual del trabajo principal (ENAHO i524a1).")
+            c1, c2 = st.columns(2)
+            c1.caption("Equivalente mensual aprox.")
+            c2.markdown(
+                f"<div style='text-align:right; font-size:18px; font-weight:600;'>"
+                f"S/ {pred_anual / 12:,.2f}</div>",
+                unsafe_allow_html=True,
+            )
