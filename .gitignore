@@ -1,0 +1,12 @@
+﻿.venv_312/
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+omp_test/
+
+# Base ENAHO en .sav (pesada; se lee desde Drive en Colab)
+data/raw/
+
+.DS_Store
+Thumbs.db
